@@ -1,0 +1,51 @@
+$ oc project openshift-oauth-apiserver
+$ oc delete pods --all
+$ echo -e "NAMESPACE\tNAME\tEXPIRY" && oc get secrets -A -o go-template='{{range .items}}{{if eq .type "kubernetes.io/tls"}}{{.metadata.namespace}}{{" "}}{{.metadata.name}}{{" "}}{{index .data "tls.crt"}}{{"\n"}}{{end}}{{end}}' | while read namespace name cert; do echo -en "$namespace\t$name\t"; echo $cert | base64 -d | openssl x509 -noout -enddate; done | column -t
+
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: <log_forwarder_name> 
+  namespace: <log_forwarder_namespace> 
+spec:
+  serviceAccountName: <service_account_name> 
+  outputs:
+   - name: rsyslog-east 
+     type: syslog 
+     syslog: 
+       facility: local0
+       rfc: RFC3164
+       payloadKey: message
+       severity: informational
+     url: 'tls://rsyslogserver.east.example.com:514' 
+     secret: 
+        name: syslog-secret
+   - name: rsyslog-west
+     type: syslog
+     syslog:
+      appName: myapp
+      facility: user
+      msgID: mymsg
+      procID: myproc
+      rfc: RFC5424
+      severity: debug
+     url: 'tcp://rsyslogserver.west.example.com:514'
+  pipelines:
+   - name: syslog-east 
+     inputRefs: 
+     - audit
+     - application
+     outputRefs: 
+     - rsyslog-east
+     - default 
+     labels:
+       secure: "true" 
+       syslog: "east"
+   - name: syslog-west 
+     inputRefs:
+     - infrastructure
+     outputRefs:
+     - rsyslog-west
+     - default
+     labels:
+       syslog: "west"

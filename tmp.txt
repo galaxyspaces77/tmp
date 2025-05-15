@@ -62,3 +62,40 @@ spec:
       type: vector
       vector: {}
 # ...
+
+
+facility: The syslog facility. The value can be a decimal integer or a case-insensitive keyword:
+
+0 or kern for kernel messages
+1 or user for user-level messages, the default.
+2 or mail for the mail system
+3 or daemon for system daemons
+4 or auth for security/authentication messages
+5 or syslog for messages generated internally by syslogd
+6 or lpr for the line printer subsystem
+7 or news for the network news subsystem
+8 or uucp for the UUCP subsystem
+9 or cron for the clock daemon
+10 or authpriv for security authentication messages
+11 or ftp for the FTP daemon
+12 or ntp for the NTP subsystem
+13 or security for the syslog audit log
+14 or console for the syslog alert log
+15 or solaris-cron for the scheduling daemon
+16–23 or local0 – local7 for locally used facilities
+Optional: payloadKey: The record field to use as payload for the syslog message.
+
+Note
+Configuring the payloadKey parameter prevents other parameters from being forwarded to the syslog.
+
+rfc: The RFC to be used for sending logs using syslog. The default is RFC5424.
+severity: The syslog severity to set on outgoing syslog records. The value can be a decimal integer or a case-insensitive keyword:
+
+0 or Emergency for messages indicating the system is unusable
+1 or Alert for messages indicating action must be taken immediately
+2 or Critical for messages indicating critical conditions
+3 or Error for messages indicating error conditions
+4 or Warning for messages indicating warning conditions
+5 or Notice for messages indicating normal but significant conditions
+6 or Informational for messages indicating informational messages
+7 or Debug for messages indicating debug-level messages, the default

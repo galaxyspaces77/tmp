@@ -130,3 +130,100 @@ Example structured output containing the structured JSON log entry
  "more fields..."}
 Important
 If the log entry does not contain valid structured JSON, the structured field is absent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Installing CIS Manually¶
+Add BIG-IP credentials as K8S secrets.
+
+For Kubernetes, use the following command:
+kubectl create secret generic bigip-login -n kube-system --from-literal=username=admin --from-literal=password=<password>
+For Openshift, use the following command:
+oc create secret generic bigip-login -n kube-system --from-literal=username=admin --from-literal=password=<password>
+Create a service account for deploying CIS.
+
+For Kubernetes, use the following command:
+kubectl create serviceaccount bigip-ctlr -n kube-system
+For Openshift, use the following command:
+oc create serviceaccount bigip-ctlr -n kube-system
+Fetch the latest RBAC for both Kubernetes and Openshift.
+
+For Kubernetes, use the following command.
+kubectl create -f https://raw.githubusercontent.com/F5Networks/k8s-bigip-ctlr/2.x-master/docs/config_examples/rbac/k8s_rbac.yml
+For Openshift, use the following command.
+oc create -f https://raw.githubusercontent.com/F5Networks/k8s-bigip-ctlr/2.x-master/docs/config_examples/rbac/openshift_rbac.yaml
+
+For Openshift, you need to create the Cluster admin privileges for the BIG-IP service account user with the following command:
+
+oc adm policy add-cluster-role-to-user cluster-admin -z bigip-ctlr -n kube-system
+Create a CIS deployment using cis_deploy.yaml as shown below:
+
+For Kubernetes, use the following command:
+
+kubectl apply -f  cis_deploy.yaml
+For Openshift, use the following command:
+
+oc apply -f cis_deploy.yaml
+cis_deploy.yaml¶
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   name: k8s-bigip-ctlr-deployment
+   namespace: kube-system
+ spec:
+ # DO NOT INCREASE REPLICA COUNT
+   replicas: 1
+   selector:
+     matchLabels:
+     app: k8s-bigip-ctlr-deployment
+   template:
+     metadata:
+       labels:
+         app: k8s-bigip-ctlr-deployment
+     spec:
+       # Name of the Service Account bound to a Cluster Role with the required
+       # permissions
+       containers:
+         - name: k8s-bigip-ctlr
+           image: "f5networks/k8s-bigip-ctlr:latest"
+           env:
+             - name: BIGIP_USERNAME
+               valueFrom:
+                 secretKeyRef:
+                 # Replace with the name of the Secret containing your login
+                 # credentials
+                   name: bigip-login
+                   key: username
+             - name: BIGIP_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                 # Replace with the name of the Secret containing your login
+                 # credentials
+                   name: bigip-login
+                   key: password
+           command: ["/app/bin/k8s-bigip-ctlr"]
+           args: [
+             # See the k8s-bigip-ctlr documentation for information about
+             # all config options
+             # When insecure=true, this enables insecure SSL communication to the BIG-IP system."
+             # https://clouddocs.f5.com/containers/latest/userguide/config-parameters.html
+             "--bigip-username=$(BIGIP_USERNAME)",
+             "--bigip-password=$(BIGIP_PASSWORD)",
+             "--bigip-url=<ip_address-or-hostname>",
+             "--bigip-partition=<name_of_partition>",
+             "--pool-member-type=nodeport",
+             "--insecure",
+             ]
+       serviceAccountName: bigip-ctlr
